@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="تشخيص السيارات بالكمبيوتر في المدينة المنورة — فحص، قراءة الأعطال، فحص قبل الشراء. خدمة بالحضور إليك.">
+<title>Автодиагностика Медина</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* =====================================================================
+   1. ЦВЕТА И ШРИФТЫ (токены). Меняете цвет здесь — он меняется везде.
+   Идея: цвета приборной панели — тёмно-синий и янтарный «Check Engine».
+   ===================================================================== */
+:root {
+  --bg: #f5f7f8;        /* фон страницы */
+  --surface: #ffffff;   /* фон карточек */
+  --ink: #12222b;       /* основной текст */
+  --muted: #55666f;     /* второстепенный текст */
+  --line: #dbe3e7;      /* тонкие линии */
+  --dash: #0f2f3d;      /* тёмная «приборная панель» */
+  --dash-ink: #e8f1f4;  /* текст на тёмном */
+  --amber: #f2a20c;     /* янтарный, как лампа Check Engine */
+  --amber-ink: #241800; /* текст на янтарной кнопке */
+  --font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+/* Тёмная тема телефона */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b171d; --surface: #12232b; --ink: #e6eef1; --muted: #9fb1b9;
+    --line: #22363f; --dash: #071116; --dash-ink: #e6eef1;
+    --amber: #f5b13a; --amber-ink: #241800; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b171d; --surface: #12232b; --ink: #e6eef1; --muted: #9fb1b9;
+  --line: #22363f; --dash: #071116; --dash-ink: #e6eef1;
+  --amber: #f5b13a; --amber-ink: #241800; color-scheme: dark;
+}
+
+/* =====================================================================
+   2. ПЕРЕКЛЮЧЕНИЕ ЯЗЫКА. Каждый текст написан трижды:
+   <span class="ar">…</span><span class="en">…</span><span class="ru">…</span>
+   Показываем только тот, чей язык сейчас выбран.
+   ===================================================================== */
+/* Показываем только язык, выбранный в <html lang="…">: ar, en или ru */
+html:not([lang="ar"]) .ar, html:not([lang="en"]) .en, html:not([lang="ru"]) .ru { display: none; }
+
+/* =====================================================================
+   3. ОБЩИЕ ПРАВИЛА
+   ===================================================================== */
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font); }
+.wrap {
+  max-width: 1040px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { line-height: 1.2; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+section { padding-block: 3.5rem; }
+.code { font-family: var(--mono); letter-spacing: .04em; direction: ltr; unicode-bidi: isolate; }
+
+/* Кнопки */
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .85rem 1.4rem; border-radius: 10px; font-weight: 700;
+  text-decoration: none; border: 2px solid transparent; cursor: pointer; font: inherit; font-weight: 700;
+}
+.btn-main { background: var(--amber); color: var(--amber-ink); }
+.btn-ghost { border-color: currentColor; color: inherit; background: none; }
+.btn:focus-visible, button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+
+/* =====================================================================
+   4. ШАПКА И ПЕРВЫЙ ЭКРАН (hero) — тёмная «приборная панель»
+   ===================================================================== */
+.hero {
+  background: var(--dash); color: var(--dash-ink);
+  margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.top { display: flex; justify-content: space-between; align-items: center; padding-block: 1rem; gap: 1rem; }
+.logo { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: .5rem; }
+.lamp { width: 12px; height: 12px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+.langs { display: flex; gap: .35rem; }
+.lang[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+.lang { background: none; color: inherit; border: 1px solid rgba(255,255,255,.35); border-radius: 8px; padding: .35rem .8rem; font: inherit; cursor: pointer; }
+
+.hero-body { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2.5rem; align-items: center; padding-block: 2rem 3.5rem; }
+.hero h1 { font-size: clamp(2rem, 6vw, 3.2rem); }
+.hero p { color: color-mix(in srgb, var(--dash-ink) 75%, transparent); max-width: 34em; font-size: 1.1rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+
+/* «Экран сканера» с кодами ошибок */
+.scanner {
+  background: #04090c; border: 1px solid #1f3a46; border-radius: 14px; padding: 1.2rem;
+  font-family: var(--mono); color: #9fe0c8; font-size: .95rem; direction: ltr;
+}
+.scanner .row { display: flex; justify-content: space-between; gap: 1rem; padding-block: .45rem; border-bottom: 1px dashed #1f3a46; }
+.scanner .row:last-child { border: 0; }
+.scanner .bad { color: var(--amber); }
+.scanner small { color: #5f8a9a; display: block; margin-bottom: .5rem; }
+
+/* =====================================================================
+   5. УСЛУГИ — сетка карточек
+   ===================================================================== */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-top: 1.75rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.card .code { color: var(--muted); font-size: .85rem; }
+.card h3 { font-size: 1.15rem; }
+.card p { margin: 0; color: var(--muted); }
+.price { margin-top: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: .9rem; margin-top: 1rem; }
+
+/* =====================================================================
+   6. КАК МЫ РАБОТАЕМ — настоящая последовательность, поэтому с номерами
+   ===================================================================== */
+.steps { list-style: none; padding: 0; margin: 1.75rem 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; counter-reset: s; }
+.steps li { counter-increment: s; border-top: 3px solid var(--amber); padding-top: .9rem; }
+.steps li::before { content: counter(s); font-family: var(--mono); color: var(--muted); display: block; }
+.steps b { display: block; margin-bottom: .25rem; }
+
+/* =====================================================================
+   7. КОНТАКТЫ
+   ===================================================================== */
+.contact { background: var(--surface); border-block: 1px solid var(--line); }
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+.facts { display: grid; gap: .75rem; margin: 1.25rem 0 0; }
+.facts div { display: grid; gap: .1rem; }
+.facts dt { color: var(--muted); font-size: .85rem; }
+.facts dd { margin: 0; font-weight: 500; }
+footer { padding-block: 2rem; color: var(--muted); font-size: .9rem; }
+
+/* =====================================================================
+   8. ТЕЛЕФОН: всё в одну колонку
+   ===================================================================== */
+@media (max-width: 760px) {
+  .hero-body, .contact-grid { grid-template-columns: 1fr; }
+}
+</style>
+<style>body{margin:0} img{max-width:100%} *{box-sizing:border-box}</style>
+</head>
+<body>
+
+
+<!-- ================= ПЕРВЫЙ ЭКРАН ================= -->
+<header class="hero">
+  <div class="wrap">
+    <div class="top">
+      <div class="logo"><span class="lamp"></span>
+        <span class="ar">تشخيص السيارات</span><span class="en">Car Diagnostics</span><span class="ru">Автодиагностика</span>
+      </div>
+      <div class="langs" role="group" aria-label="Language">
+        <button class="lang" type="button" data-lang="ar">ع</button>
+        <button class="lang" type="button" data-lang="en">EN</button>
+        <button class="lang" type="button" data-lang="ru">RU</button>
+      </div>
+    </div>
+
+    <div class="hero-body">
+      <div>
+        <h1>
+          <span class="ar">لمبة المحرك مضاءة؟ نعرف السبب في ٣٠ دقيقة</span>
+          <span class="en">Check engine light on? We'll find out why in 30 minutes</span><span class="ru">Горит «Check Engine»? Найдём причину за 30 минут</span>
+        </h1>
+        <p>
+          <span class="ar">فحص كمبيوتر شامل لسيارتك في المدينة المنورة. نقرأ الأعطال ونشرحها لك بوضوح قبل أي إصلاح.</span>
+          <span class="en">Full computer diagnostics for your car in Medina. We read the fault codes and explain them clearly before any repair.</span><span class="ru">Полная компьютерная диагностика вашей машины в Медине. Считываем коды ошибок и понятно объясняем их до любого ремонта.</span>
+        </p>
+        <div class="actions">
+          <!-- Замените 966570521461 на свой номер WhatsApp (без + и пробелов) -->
+          <a class="btn btn-main" href="https://wa.me/966570521461" target="_blank" rel="noopener">
+            <span class="ar">احجز عبر واتساب</span><span class="en">Book on WhatsApp</span><span class="ru">Записаться в WhatsApp</span>
+          </a>
+          <a class="btn btn-ghost" href="#services">
+            <span class="ar">الخدمات والأسعار</span><span class="en">Services & prices</span><span class="ru">Услуги и цены</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Декоративный «экран сканера»: настоящие форматы кодов OBD-II -->
+      <div class="scanner" aria-hidden="true">
+        <small>OBD-II SCAN · 4 SYSTEMS</small>
+        <div class="row"><span>ENGINE</span><span class="bad">P0301</span></div>
+        <div class="row"><span>ABS</span><span>OK</span></div>
+        <div class="row"><span>AIRBAG</span><span class="bad">B0028</span></div>
+        <div class="row"><span>TRANSMISSION</span><span>OK</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ================= УСЛУГИ ================= -->
+  <section id="services">
+    <div class="wrap">
+      <h2><span class="ar">الخدمات</span><span class="en">Services</span><span class="ru">Услуги</span></h2>
+      <div class="grid">
+        <article class="card">
+          <span class="code">OBD-II</span>
+          <h3><span class="ar">فحص كمبيوتر كامل</span><span class="en">Full computer scan</span><span class="ru">Полная компьютерная диагностика</span></h3>
+          <p><span class="ar">المحرك، القير، الفرامل ABS، الوسائد الهوائية.</span><span class="en">Engine, gearbox, ABS brakes, airbags.</span><span class="ru">Двигатель, коробка передач, тормоза ABS, подушки безопасности.</span></p>
+          <span class="price">150 <span class="ar">ريال</span><span class="en">SAR</span><span class="ru">риял</span></span>
+        </article>
+        <article class="card">
+          <span class="code">P0xxx</span>
+          <h3><span class="ar">لمبة المحرك</span><span class="en">Check engine light</span><span class="ru">Лампа «Check Engine»</span></h3>
+          <p><span class="ar">قراءة الكود، تحديد السبب، ومسح الخطأ بعد الإصلاح.</span><span class="en">Read the code, find the cause, clear it after repair.</span><span class="ru">Считываем код, находим причину, сбрасываем ошибку после ремонта.</span></p>
+          <span class="price">40 <span class="ar">ريال</span><span class="en">SAR</span><span class="ru">риял</span></span>
+        </article>
+        <article class="card">
+          <span class="code">PRE-BUY</span>
+          <h3><span class="ar">فحص قبل الشراء</span><span class="en">Pre-purchase inspection</span><span class="ru">Проверка перед покупкой</span></h3>
+          <p><span class="ar">تشتري سيارة مستعملة؟ نفحصها قبل أن تدفع.</span><span class="en">Buying a used car? We check it before you pay.</span><span class="ru">Покупаете подержанную машину? Проверим её до того, как вы заплатите.</span></p>
+          <span class="price">150 <span class="ar">ريال + رسوم الحضور</span><span class="en">SAR + call-out fee</span><span class="ru">риял + выезд</span></span>
+        </article>
+        <article class="card">
+          <span class="code">MOBILE</span>
+          <h3><span class="ar">نأتي إليك</span><span class="en">We come to you</span><span class="ru">Выезд к клиенту</span></h3>
+          <p><span class="ar">نأتي إلى بيتك أو عملك داخل المدينة، ويضاف إلى أي خدمة.</span><span class="en">We come to your home or work in Medina. Added to any service.</span><span class="ru">Приеду к дому или на работу в пределах Медины. Добавляется к любой услуге.</span></p>
+          <span class="price">30 <span class="ar">ريال</span><span class="en">SAR</span><span class="ru">риял</span></span>
+        </article>
+      </div>
+      <!-- Цены от владельца, ноябрь 2026 -->
+      <p class="note"><span class="ar">الأسعار تقريبية، والسعر النهائي حسب نوع السيارة.</span><span class="en">Prices are approximate; the final price depends on the car.</span><span class="ru">Цены примерные, итоговая цена зависит от машины.</span></p>
+    </div>
+  </section>
+
+  <!-- ================= КАК МЫ РАБОТАЕМ ================= -->
+  <section>
+    <div class="wrap">
+      <h2><span class="ar">كيف نعمل</span><span class="en">How it works</span><span class="ru">Как мы работаем</span></h2>
+      <ol class="steps">
+        <li><b><span class="ar">راسلنا</span><span class="en">Message us</span><span class="ru">Напишите нам</span></b><span class="ar">اكتب نوع السيارة والمشكلة على واتساب.</span><span class="en">Send the car model and the problem on WhatsApp.</span><span class="ru">Отправьте марку машины и описание проблемы в WhatsApp.</span></li>
+        <li><b><span class="ar">الفحص</span><span class="en">Scan</span><span class="ru">Диагностика</span></b><span class="ar">نوصل جهاز الفحص ونقرأ كل الأنظمة.</span><span class="en">We connect the scanner and read every system.</span><span class="ru">Подключаем сканер и проверяем все системы.</span></li>
+        <li><b><span class="ar">التقرير</span><span class="en">Report</span><span class="ru">Отчёт</span></b><span class="ar">نشرح لك الأعطال وما يحتاج إصلاح فعلاً.</span><span class="en">We explain the faults and what really needs fixing.</span><span class="ru">Объясняем неисправности и что действительно нужно чинить.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= КОНТАКТЫ ================= -->
+  <section class="contact">
+    <div class="wrap contact-grid">
+      <div>
+        <h2><span class="ar">تواصل معنا</span><span class="en">Contact</span><span class="ru">Контакты</span></h2>
+        <dl class="facts">
+          <div><dt><span class="ar">واتساب / جوال</span><span class="en">WhatsApp / phone</span><span class="ru">WhatsApp / телефон</span></dt>
+               <dd class="code">+966 57 052 1461</dd></div>
+          <div><dt><span class="ar">الموقع</span><span class="en">Location</span><span class="ru">Адрес</span></dt>
+               <dd><span class="ar">المدينة المنورة · بالحضور إليك</span><span class="en">Medina · mobile service, I come to you</span><span class="ru">Медина · выезд к клиенту</span></dd></div>
+          <div><dt><span class="ar">ساعات العمل</span><span class="en">Hours</span><span class="ru">Часы работы</span></dt>
+               <dd><span class="ar">السبت والخميس: ٩ صباحاً – ١٢ منتصف الليل<br>باقي الأيام: ٣ عصراً – ١٢ منتصف الليل</span><span class="en">Saturday and Thursday: 9:00 – 00:00<br>Other days: 15:00 – 00:00</span><span class="ru">Суббота и четверг: 9:00 – 00:00<br>Остальные дни: 15:00 – 00:00</span></dd></div>
+        </dl>
+      </div>
+      <div class="actions">
+        <a class="btn btn-main" href="https://wa.me/966570521461" target="_blank" rel="noopener">
+          <span class="ar">احجز الآن</span><span class="en">Book now</span><span class="ru">Записаться</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">© 2026 · <span class="ar">تشخيص السيارات — المدينة المنورة</span><span class="en">Car Diagnostics — Medina</span><span class="ru">Автодиагностика — Медина</span></div></footer>
+
+<script>
+  // =====================================================================
+  // ЯЗЫК: по кнопке меняем lang (ar/en) и направление текста (справа/слева).
+  // =====================================================================
+  const html = document.documentElement;
+  const buttons = document.querySelectorAll('.lang');
+  function setLang(l) {
+    html.lang = l;
+    html.dir = l === 'ar' ? 'rtl' : 'ltr';   // арабский пишется справа налево
+    // подсвечиваем кнопку выбранного языка
+    buttons.forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === l));
+    try { localStorage.setItem('lang', l); } catch (e) {}
+  }
+  let saved = 'ar';
+  try { saved = localStorage.getItem('lang') || 'ar'; } catch (e) {}
+  setLang(saved);
+  buttons.forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+</script>
+
+</body>
+</html>
